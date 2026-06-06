@@ -66,3 +66,10 @@ def point_getcode(address: str = '', city:str = '') -> str:
     response = requests.get(url = url, params=params).json()
     location = response['geocodes'][0]['location']
     return location
+
+def url_to_qrcode(url: str) -> Image:
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill='black', back_color='white')
+    return img
