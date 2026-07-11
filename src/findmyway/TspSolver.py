@@ -1,6 +1,5 @@
 from functools import lru_cache
 
-
 class _TspSolver:
     """TSP求解器，封装距离矩阵和DP求解"""
 

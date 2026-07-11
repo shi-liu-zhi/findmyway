@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "findmyway"
 version = "0.0.1"
 description = "My findmyway package"
-authors = [{name = "Your Name", email = "your@email.com"}]
+authors = [{name = "Xu Yang", email = "shi_liu_zhi@sina.com"}]
 requires-python = ">=3.8"
 
 [tool.setuptools.packages.find]
