@@ -71,26 +71,50 @@ def mulNodes_management(
 
 
 # %% 生成可直接调起高德App的导航链接 
-def generate_amap_navigation_link(origin, destination, waypoint, mode='car'):
+def generate_amap_navigation_link(origin, destination, waypoint, mode='car',
+                                  origin_name='', dest_name='', waypoint_names=''):
     """
     生成高德地图导航链接
+    基于高德分享链接格式: https://m.amap.com/navigation/carmap/
     mode: car（驾车）, bus（公交）, walk（步行）, bike（骑行）
     """
-    base_url = "https://uri.amap.com/navigation" 
-    params = {
-        "from": origin,
-        "to": destination,
-        "mode": mode,
-        "policy": "0"  # 0: 速度快, 1: 费用低, 2: 路程短
-    }
-    
+    # 解析坐标
+    ori_lon, ori_lat = origin.split(',')
+    dest_lon, dest_lat = destination.split(',')
+
+    # 构建途经点数据
+    via_lats, via_lons, via_names = '', '', ''
     if waypoint:
-        # 途经点 via 参数：多个坐标用英文分号分隔
-        params["via"] = waypoint
-    
-    param_str = '&'.join([f"{k}={v}" for k, v in params.items()])
-    full_url = f"{base_url}?{param_str}"
-    
+        coords = waypoint.split(';')
+        names = waypoint_names.split('|') if waypoint_names else ['']
+        lons, lats, nms = [], [], []
+        for i, coord in enumerate(coords):
+            lon, lat = coord.split(',')
+            lons.append(lon)
+            lats.append(lat)
+            nms.append(names[i] if i < len(names) else '')
+        via_lats = '|'.join(lats)
+        via_lons = '|'.join(lons)
+        via_names = '|'.join(nms)
+
+    # __r 参数（核心路由数据，格式参照高德分享链接）
+    r_parts = [
+        ori_lat, ori_lon, origin_name,       # 0, 1, 2: 起点 lat, lon, name
+        dest_lat, dest_lon, dest_name,        # 3, 4, 5: 终点 lat, lon, name
+        '', '0', '0', '', '', '',              # 6-11: 占位
+        '',                                    # 12: 路由编码数据（留空）
+        via_lats, via_lons, via_names,        # 13, 14, 15: 途经点
+    ]
+
+    full_url = (
+        f"https://m.amap.com/navigation/carmap/"
+        f"__r={','.join(r_parts)}"
+        f"&saddr={ori_lon},{ori_lat},{origin_name}"
+        f"&daddr={dest_lon},{dest_lat},{dest_name}"
+        f"&viaaddr={via_lons},{via_lats},{via_names}"
+        f"&src=app_share&callnative=1"
+    )
+
     return full_url
 
 # %% 多点规划 Lagecy
@@ -127,26 +151,26 @@ if __name__ == "__main__":
 
     # 创建节点（会调用高德地理编码API获取坐标）
     nodes = [
-        Node(address='东钱湖', city='宁波'),
-        Node(address='天一广场', city='宁波'),
-        Node(address='老外滩', city='宁波'),
-        Node(address='南塘老街', city='宁波'),
-        Node(address='鼓楼', city='宁波'),
-        Node(address='月湖公园', city='宁波'),
-        Node(address='宁波博物馆', city='宁波'),
-        Node(address='城隍庙', city='宁波'),
-        Node(address='梁祝文化公园', city='宁波'),
-        Node(address='保国寺', city='宁波'),
-        Node(address='天童寺', city='宁波'),
-        Node(address='阿育王寺', city='宁波'),
-        Node(address='宁波植物园', city='宁波'),
-        Node(address='宁波文化广场', city='宁波'),
-        Node(address='宁波海洋世界', city='宁波'),
-        Node(address='宁波美术馆', city='宁波'),
-        Node(address='溪口蒋氏故居', city='宁波'),
-        Node(address='九龙湖', city='宁波'),
-        Node(address='郑氏十七房', city='宁波'),
-        Node(address='雪窦山', city='宁波'),
+        Node(address='海底捞天一广场店', city='宁波'),
+        Node(address='海底捞江北万达店', city='宁波'),
+        Node(address='海底捞鄞州万达店', city='宁波'),
+        Node(address='肯德基天一广场店', city='宁波'),
+        Node(address='肯德基宁波来福士', city='宁波'),
+        Node(address='肯德基鄞州万达店', city='宁波'),
+        Node(address='星巴克天一广场店', city='宁波'),
+        Node(address='星巴克宁波来福士', city='宁波'),
+        Node(address='星巴克鄞州万达店', city='宁波'),
+        Node(address='外婆家天一广场店', city='宁波'),
+        Node(address='外婆家宁波来福士', city='宁波'),
+        Node(address='绿茶餐厅天一广场店', city='宁波'),
+        Node(address='绿茶餐厅鄞州万达店', city='宁波'),
+        Node(address='必胜客天一广场店', city='宁波'),
+        Node(address='必胜客鄞州万达店', city='宁波'),
+        Node(address='老娘舅天一广场店', city='宁波'),
+        Node(address='老娘舅宁波来福士', city='宁波'),
+        Node(address='真功夫天一广场店', city='宁波'),
+        Node(address='真功夫宁波火车站店', city='宁波'),
+        Node(address='张亮麻辣烫城隍庙店', city='宁波'),
     ]
 
     # 调用 mulNodes_management 获取所有两两路径耗时（会调用驾车路径API）
@@ -170,5 +194,6 @@ if __name__ == "__main__":
     for i, link in enumerate(nav_links, 1):
 
         print(f"  第{i}段: {link}")
+
         # 生成二维码
         url_to_qrcode(link).save(os.path.expanduser(f"~/Pictures/nav_link_{i}.png"))

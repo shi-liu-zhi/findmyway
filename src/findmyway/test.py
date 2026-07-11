@@ -119,19 +119,23 @@ class _TspSolver:
     MAX_WAYPOINTS = 16  # 每个导航链接最多支持的途经点数量
 
     def _get_coord_list(self, path):
-        """从路径中提取坐标列表（去掉末尾重复起点）"""
+        """从路径中提取坐标和名称列表（去掉末尾重复起点）"""
         coord_list = []
+        name_list = []
         for node in path[:-1]:
             if hasattr(node, 'latlon'):
                 coord_list.append(node.latlon)
+                name_list.append(getattr(node, 'address', ''))
             else:
                 for n in self.all_nodes:
                     if hasattr(n, 'address') and n.address == node:
                         coord_list.append(n.latlon)
+                        name_list.append(n.address)
                         break
                 else:
                     coord_list.append(str(node))
-        return coord_list
+                    name_list.append(str(node))
+        return coord_list, name_list
 
     def to_link(self, path, mode='car'):
         """
@@ -139,7 +143,7 @@ class _TspSolver:
         如果途经点超过 limit，自动分段生成多个首尾相连的链接
         返回: 导航链接列表
         """
-        coords = self._get_coord_list(path)
+        coords, names = self._get_coord_list(path)
         n = len(coords)  # 总节点数（不包含末尾重复起点）
         from manage_path import generate_amap_navigation_link
 
@@ -148,14 +152,19 @@ class _TspSolver:
 
         links = []
         for i in range(0, n - 1, chunk_size - 1):
-            seg = coords[i:i + chunk_size]
-            origin = seg[0]
-            destination = seg[-1]
-            waypoints = ';'.join(seg[1:-1])
+            seg_coords = coords[i:i + chunk_size]
+            seg_names = names[i:i + chunk_size]
+            origin = seg_coords[0]
+            destination = seg_coords[-1]
+            waypoints = ';'.join(seg_coords[1:-1])
+            waypoint_names = '|'.join(seg_names[1:-1])
             links.append(generate_amap_navigation_link(
                 origin=origin,
                 destination=destination,
                 waypoint=waypoints,
+                origin_name=seg_names[0],
+                dest_name=seg_names[-1],
+                waypoint_names=waypoint_names,
                 mode=mode,
             ))
 
